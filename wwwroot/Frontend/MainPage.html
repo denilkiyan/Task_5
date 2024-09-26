@@ -40,6 +40,9 @@
                         </ul>
                     </li>
                 </ul>
+                <button class="btn btn-outline-light ms-auto" type="button" id="csv-button">
+                    Export to CSV
+                </button>
             </div>
         </div>
     </nav>
@@ -102,15 +105,15 @@
 
         document.getElementById('errorRange').addEventListener('input', function () {
             errorCount = this.value;
-            document.getElementById('errorInput').value = (this.value * 100).toFixed(2);
+            document.getElementById('errorInput').value = this.value;
             resetTable(); userNumber = 1
         });
 
         document.getElementById('errorInput').addEventListener('input', function () {
             let inputValue = parseFloat(this.value);
             if (inputValue > 1000) inputValue = 1000;
-            document.getElementById('errorRange').value = (inputValue / 100).toFixed(2);
-            errorCount = inputValue / 100;
+            document.getElementById('errorRange').value = Math.min(inputValue,10);
+            errorCount = inputValue;
             resetTable(); userNumber = 1
         });
 
@@ -124,18 +127,45 @@
             document.getElementById('seedInput').value = seed;
             resetTable(); userNumber = 1
         });
-
         window.addEventListener('scroll', function () {
             if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100 && !loading) {
                 loadData();
             }
         });
 
+        document.getElementById('csv-button').addEventListener('click', function () {
+            exportTableToCSV();
+        });
+
+        function exportTableToCSV() {
+            let csv = [];
+            let rows = document.querySelectorAll("table tr");
+
+            rows.forEach(row => {
+                let cols = row.querySelectorAll("th, td");
+                let rowData = [];
+                cols.forEach(col => {
+                    rowData.push(`"${col.innerText.replace(/"/g, '""')}"`);
+                });
+                csv.push(rowData.join(",")); 
+            });
+
+            let csvString = csv.join("\n");
+
+            let blob = new Blob([csvString], { type: 'text/csv' });
+            let link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'Users.csv';
+
+            link.click();
+        }
+
         function resetTable() {
             currentPage = 1;
             document.getElementById('data-table-body').innerHTML = '';
             loadData();
         }
+
 
         async function loadData() {
             loading = true;

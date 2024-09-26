@@ -3,7 +3,7 @@ using Task_5;
 using Task_5.Data_Model;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddTransient<DataGenerator>();
+builder.Services.AddScoped<DataGenerator>();
 var app = builder.Build();
 
 app.Map("/", async context =>
@@ -19,4 +19,5 @@ app.MapGet("api/Data", async (DataGenerator generator, string region, int pageNu
     else { users = await generator.GenerateUserDataAsync(region, seed, pageNumber, errorCount); }
     return Results.Ok(users);
 });
+
 app.Run();

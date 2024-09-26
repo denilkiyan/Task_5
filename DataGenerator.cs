@@ -8,59 +8,71 @@ namespace Task_5
     {
         private static Random Random = new Random();
         private int indexForID = 0;
+        private string charsForUs = "1234567890qwertyuiopasdfhjk;zxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM,.";
+        private string charsForRu = "1234567890йцунгшщзфывапролдячсмитьЙЦУККЕНГШЩЗФЫВАПРОЛДЯЧСМИТЬ;,.";
+
         public async Task<List<User>> GenerateUserDataAsync(string region, int seed, int pageNumber, double errorCount, int pageSize = 20)
         {
             var faker = new Faker<User>(region).UseSeed(seed + pageNumber)
                 .RuleFor(u => u.Id, (f, u) => GenerateId(seed, pageNumber)).RuleFor(u => u.FullName, f => f.Name.FullName()).RuleFor(u => u.Address, f => f.Address.FullAddress()).RuleFor(u => u.PhoneNumber, f => f.Phone.PhoneNumber());
             var users = faker.Generate(pageSize);
-            if (errorCount > 0) { await Task.Run(() => users = ApplyUsersChanges(users, Random, errorCount)); }
+            if (errorCount > 0) { await Task.Run(() => users = ApplyUsersChanges(users, Random, errorCount, region)); }
             return users;
         }
 
-        public List<User> ApplyUsersChanges(List<User> users, Random random, double errorCount)
+        public List<User> ApplyUsersChanges(List<User> users, Random random, double errorCount, string region)
         {
             foreach (var user in users)
             {
-                user.FullName = GetWrongString(user.FullName, random, errorCount);
-                user.Address = GetWrongString(user.Address, random, errorCount);
-                user.PhoneNumber = GetWrongString(user.PhoneNumber, random, errorCount);
+                user.FullName = GetWrongString(user.FullName, random, errorCount, region);
+                user.Address = GetWrongString(user.Address, random, errorCount, region);
+                user.PhoneNumber = GetWrongString(user.PhoneNumber, random, errorCount, region);
             }
             return users;
         }
 
-        public string GetWrongString(string input, Random random, double errorCount)
+        public string GetWrongString(string input, Random random, double errorCount, string region)
         {
-            if (string.IsNullOrEmpty(input)) return input;
             int integerErrorCount = (int)errorCount;
             double fractionPart = errorCount - integerErrorCount;
-            for (int i = 0; i < integerErrorCount; i++) { input = GetErrorType(input, random); }
-            if (random.NextDouble() < fractionPart) input = GetErrorType(input, random);
+            if (input.Length > 1) { for (int i = 0; i < integerErrorCount / 3; i++) { if (input.Length <= 1 || input.Length > 150) { break; } else { input = GetErrorType(input, random, region); } } }
+            if (random.NextDouble() < fractionPart && input.Length > 1) input = GetErrorType(input, random, region);
             return input;
         }
 
 
-        public string GetErrorType(string input, Random random)
+        public string GetErrorType(string input, Random random, string region)
         {
             if (string.IsNullOrEmpty(input)) return input;
-            int errorType = random.Next(1, 4); // 1 - Удаление 1 символа, добавление 1 случайного символа, перестановка двух соседних символвов местами
+            int errorType = random.Next(1, 4); // 1 - Удаление 1 символа, 2 - добавление 1 случайного символа, 3 - перестановка двух соседних символов местами
             switch (errorType)
             {
-                case 1: if (input.Length > 0) input = input.Remove(random.Next(0, input.Length)); break;
-                case 2: input = input.Insert(random.Next(0, input.Length), GetRandomChar(random).ToString()); break;
-                case 3:
-                    if (input.Length > 1)
-                    {
-                        int pos = random.Next(0, input.Length - 1);
-                        char[] chars = input.ToCharArray();
-                        (chars[pos], chars[pos + 1]) = (chars[pos + 1], chars[pos]);
-                        input = new string(chars);
-                    }
-                    break;
+                case 1: input = DeleteCharFromStr(input); break;
+                case 2: input = input.Insert(random.Next(0, input.Length), GetRandomChar(random, region).ToString()); break;
+                case 3: input = SwapChars(input); break;
             }
             return input;
         }
+        private string DeleteCharFromStr(string input)
+        {
+            int i = Random.Next(0, input.Length - 1);
+            string res = input.Remove(i, 1);
+            return res;
+        }
 
-        private char GetRandomChar(Random random) { char c = (char)random.Next('a','z'); return c; }
+        private string SwapChars(string input)
+        {
+            int p = Random.Next(0, input.Length - 1);
+            char[] chars = input.ToCharArray();
+            (chars[p], chars[p + 1]) = (chars[p + 1], chars[p]);
+            string res = new string(chars);
+            return res;
+        }
+        private char GetRandomChar(Random random, string region)
+        {
+            char c = region == "en_US" ? charsForUs[random.Next(0, charsForUs.Length)] : charsForRu[random.Next(0, charsForRu.Length)];
+            return c;
+        }
 
         private int GenerateId(int seed, int pageNumber)
         {
